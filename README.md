@@ -11,46 +11,46 @@ An educational framework exploring ergonomic, lightweight multi-agent orchestrat
 
 ## Install
 
-Requires Python 3.10+
+Requires Node.js 14+
 
 ```shell
-pip install git+ssh://git@github.com/openai/swarm.git
+npm install git+ssh://git@github.com/openai/swarm.git
 ```
 
 or
 
 ```shell
-pip install git+https://github.com/openai/swarm.git
+npm install git+https://github.com/openai/swarm.git
 ```
 
 ## Usage
 
-```python
-from swarm import Swarm, Agent
+```typescript
+import { Swarm, Agent } from 'swarm';
 
-client = Swarm()
+const client = new Swarm();
 
-def transfer_to_agent_b():
-    return agent_b
+function transferToAgentB(): Agent {
+    return agentB;
+}
 
+const agentA = new Agent({
+    name: "Agent A",
+    instructions: "You are a helpful agent.",
+    functions: [transferToAgentB],
+});
 
-agent_a = Agent(
-    name="Agent A",
-    instructions="You are a helpful agent.",
-    functions=[transfer_to_agent_b],
-)
+const agentB = new Agent({
+    name: "Agent B",
+    instructions: "Only speak in Haikus.",
+});
 
-agent_b = Agent(
-    name="Agent B",
-    instructions="Only speak in Haikus.",
-)
+const response = await client.run({
+    agent: agentA,
+    messages: [{ role: "user", content: "I want to talk to agent B." }],
+});
 
-response = client.run(
-    agent=agent_a,
-    messages=[{"role": "user", "content": "I want to talk to agent B."}],
-)
-
-print(response.messages[-1]["content"])
+console.log(response.messages[response.messages.length - 1].content);
 ```
 
 ```
@@ -107,10 +107,10 @@ Check out `/examples` for inspiration! Learn more about each one in its README.
 
 Start by instantiating a Swarm client (which internally just instantiates an `OpenAI` client).
 
-```python
-from swarm import Swarm
+```typescript
+import { Swarm } from 'swarm';
 
-client = Swarm()
+const client = new Swarm();
 ```
 
 ### `client.run()`
@@ -132,13 +132,13 @@ At its core, Swarm's `client.run()` implements the following loop:
 | **agent**             | `Agent` | The (initial) agent to be called.                                                                                                                      | (required)     |
 | **messages**          | `List`  | A list of message objects, identical to [Chat Completions `messages`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-messages) | (required)     |
 | **context_variables** | `dict`  | A dictionary of additional context variables, available to functions and Agent instructions                                                            | `{}`           |
-| **max_turns**         | `int`   | The maximum number of conversational turns allowed                                                                                                     | `float("inf")` |
-| **model_override**    | `str`   | An optional string to override the model being used by an Agent                                                                                        | `None`         |
-| **execute_tools**     | `bool`  | If `False`, interrupt execution and immediately returns `tool_calls` message when an Agent tries to call a function                                    | `True`         |
-| **stream**            | `bool`  | If `True`, enables streaming responses                                                                                                                 | `False`        |
-| **debug**             | `bool`  | If `True`, enables debug logging                                                                                                                       | `False`        |
+| **max_turns**         | `int`   | The maximum number of conversational turns allowed                                                                                                     | `Infinity`     |
+| **model_override**    | `str`   | An optional string to override the model being used by an Agent                                                                                        | `null`         |
+| **execute_tools**     | `bool`  | If `False`, interrupt execution and immediately returns `tool_calls` message when an Agent tries to call a function                                    | `true`         |
+| **stream**            | `bool`  | If `True`, enables streaming responses                                                                                                                 | `false`        |
+| **debug**             | `bool`  | If `True`, enables debug logging                                                                                                                       | `false`        |
 
-Once `client.run()` is finished (after potentially multiple calls to agents and tools) it will return a `Response` containing all the relevant updated state. Specifically, the new `messages`, the last `Agent` to be called, and the most up-to-date `context_variables`. You can pass these values (plus new user messages) in to your next execution of `client.run()` to continue the interaction where it left off – much like `chat.completions.create()`. (The `run_demo_loop` function implements an example of a full execution loop in `/swarm/repl/repl.py`.)
+Once `client.run()` is finished (after potentially multiple calls to agents and tools) it will return a `Response` containing all the relevant updated state. Specifically, the new `messages`, the last `Agent` to be called, and the most up-to-date `context_variables`. You can pass these values (plus new user messages) in to your next execution of `client.run()` to continue the interaction where it left off – much like `chat.completions.create()`. (The `runDemoLoop` function implements an example of a full execution loop in `/swarm/repl/repl.ts`.)
 
 #### `Response` Fields
 
@@ -158,38 +158,40 @@ While it's tempting to personify an `Agent` as "someone who does X", it can also
 
 | Field            | Type                     | Description                                                                   | Default                      |
 | ---------------- | ------------------------ | ----------------------------------------------------------------------------- | ---------------------------- |
-| **name**         | `str`                    | The name of the agent.                                                        | `"Agent"`                    |
-| **model**        | `str`                    | The model to be used by the agent.                                            | `"gpt-4o"`                   |
-| **instructions** | `str` or `func() -> str` | Instructions for the agent, can be a string or a callable returning a string. | `"You are a helpful agent."` |
-| **functions**    | `List`                   | A list of functions that the agent can call.                                  | `[]`                         |
-| **tool_choice**  | `str`                    | The tool choice for the agent, if any.                                        | `None`                       |
+| **name**         | `string`                 | The name of the agent.                                                        | `"Agent"`                    |
+| **model**        | `string`                 | The model to be used by the agent.                                            | `"gpt-4o"`                   |
+| **instructions** | `string` or `() => string` | Instructions for the agent, can be a string or a callable returning a string. | `"You are a helpful agent."` |
+| **functions**    | `AgentFunction[]`        | A list of functions that the agent can call.                                  | `[]`                         |
+| **tool_choice**  | `string`                 | The tool choice for the agent, if any.                                        | `null`                       |
 
 ### Instructions
 
 `Agent` `instructions` are directly converted into the `system` prompt of a conversation (as the first message). Only the `instructions` of the active `Agent` will be present at any given time (e.g. if there is an `Agent` handoff, the `system` prompt will change, but the chat history will not.)
 
-```python
-agent = Agent(
-   instructions="You are a helpful agent."
-)
+```typescript
+const agent = new Agent({
+   instructions: "You are a helpful agent."
+});
 ```
 
-The `instructions` can either be a regular `str`, or a function that returns a `str`. The function can optionally receive a `context_variables` parameter, which will be populated by the `context_variables` passed into `client.run()`.
+The `instructions` can either be a regular `string`, or a function that returns a `string`. The function can optionally receive a `context_variables` parameter, which will be populated by the `context_variables` passed into `client.run()`.
 
-```python
-def instructions(context_variables):
-   user_name = context_variables["user_name"]
-   return f"Help the user, {user_name}, do whatever they want."
+```typescript
+function instructions(contextVariables: Record<string, any>): string {
+   const userName = contextVariables["user_name"];
+   return `Help the user, ${userName}, do whatever they want.`;
+}
 
-agent = Agent(
-   instructions=instructions
-)
-response = client.run(
-   agent=agent,
-   messages=[{"role":"user", "content": "Hi!"}],
-   context_variables={"user_name":"John"}
-)
-print(response.messages[-1]["content"])
+const agent = new Agent({
+   instructions: instructions
+});
+
+const response = await client.run({
+   agent: agent,
+   messages: [{ role: "user", content: "Hi!" }],
+   context_variables: { user_name: "John" }
+});
+console.log(response.messages[response.messages.length - 1].content);
 ```
 
 ```
@@ -198,27 +200,28 @@ Hi John, how can I assist you today?
 
 ## Functions
 
-- Swarm `Agent`s can call python functions directly.
-- Function should usually return a `str` (values will be attempted to be cast as a `str`).
+- Swarm `Agent`s can call TypeScript functions directly.
+- Function should usually return a `string` (values will be attempted to be cast as a `string`).
 - If a function returns an `Agent`, execution will be transferred to that `Agent`.
 - If a function defines a `context_variables` parameter, it will be populated by the `context_variables` passed into `client.run()`.
 
-```python
-def greet(context_variables, language):
-   user_name = context_variables["user_name"]
-   greeting = "Hola" if language.lower() == "spanish" else "Hello"
-   print(f"{greeting}, {user_name}!")
-   return "Done"
+```typescript
+function greet(contextVariables: Record<string, any>, language: string): string {
+   const userName = contextVariables["user_name"];
+   const greeting = language.toLowerCase() === "spanish" ? "Hola" : "Hello";
+   console.log(`${greeting}, ${userName}!`);
+   return "Done";
+}
 
-agent = Agent(
-   functions=[greet]
-)
+const agent = new Agent({
+   functions: [greet]
+});
 
-client.run(
-   agent=agent,
-   messages=[{"role": "user", "content": "Usa greet() por favor."}],
-   context_variables={"user_name": "John"}
-)
+await client.run({
+   agent: agent,
+   messages: [{ role: "user", content: "Usa greet() por favor." }],
+   context_variables: { user_name: "John" }
+});
 ```
 
 ```
@@ -232,16 +235,22 @@ Hola, John!
 
 An `Agent` can hand off to another `Agent` by returning it in a `function`.
 
-```python
-sales_agent = Agent(name="Sales Agent")
+```typescript
+const salesAgent = new Agent({ name: "Sales Agent" });
 
-def transfer_to_sales():
-   return sales_agent
+function transferToSales(): Agent {
+   return salesAgent;
+}
 
-agent = Agent(functions=[transfer_to_sales])
+const agent = new Agent({
+   functions: [transferToSales]
+});
 
-response = client.run(agent, [{"role":"user", "content":"Transfer me to sales."}])
-print(response.agent.name)
+const response = await client.run({
+   agent: agent,
+   messages: [{ role: "user", content: "Transfer me to sales." }]
+});
+console.log(response.agent.name);
 ```
 
 ```
@@ -250,31 +259,34 @@ Sales Agent
 
 It can also update the `context_variables` by returning a more complete `Result` object. This can also contain a `value` and an `agent`, in case you want a single function to return a value, update the agent, and update the context variables (or any subset of the three).
 
-```python
-sales_agent = Agent(name="Sales Agent")
+```typescript
+const salesAgent = new Agent({ name: "Sales Agent" });
 
-def talk_to_sales():
-   print("Hello, World!")
-   return Result(
-       value="Done",
-       agent=sales_agent,
-       context_variables={"department": "sales"}
-   )
+function talkToSales(): Result {
+   console.log("Hello, World!");
+   return new Result({
+       value: "Done",
+       agent: salesAgent,
+       context_variables: { department: "sales" }
+   });
+}
 
-agent = Agent(functions=[talk_to_sales])
+const agent = new Agent({
+   functions: [talkToSales]
+});
 
-response = client.run(
-   agent=agent,
-   messages=[{"role": "user", "content": "Transfer me to sales"}],
-   context_variables={"user_name": "John"}
-)
-print(response.agent.name)
-print(response.context_variables)
+const response = await client.run({
+   agent: agent,
+   messages: [{ role: "user", content: "Transfer me to sales" }],
+   context_variables: { user_name: "John" }
+});
+console.log(response.agent.name);
+console.log(response.context_variables);
 ```
 
 ```
 Sales Agent
-{'department': 'sales', 'user_name': 'John'}
+{ department: 'sales', user_name: 'John' }
 ```
 
 > [!NOTE]
@@ -289,16 +301,17 @@ Swarm automatically converts functions into a JSON Schema that is passed into Ch
 - Type hints are mapped to the parameter's `type` (and default to `string`).
 - Per-parameter descriptions are not explicitly supported, but should work similarly if just added in the docstring. (In the future docstring argument parsing may be added.)
 
-```python
-def greet(name, age: int, location: str = "New York"):
-   """Greets the user. Make sure to get their name and age before calling.
-
-   Args:
-      name: Name of the user.
-      age: Age of the user.
-      location: Best place on earth.
-   """
-   print(f"Hello {name}, glad you are {age} in {location}!")
+```typescript
+function greet(name: string, age: number, location: string = "New York"): string {
+   /** Greets the user. Make sure to get their name and age before calling.
+    *
+    * @param name - Name of the user.
+    * @param age - Age of the user.
+    * @param location - Best place on earth.
+    */
+   console.log(`Hello ${name}, glad you are ${age} in ${location}!`);
+   return "Done";
+}
 ```
 
 ```javascript
@@ -322,13 +335,14 @@ def greet(name, age: int, location: str = "New York"):
 
 ## Streaming
 
-```python
-stream = client.run(agent, messages, stream=True)
-for chunk in stream:
-   print(chunk)
+```typescript
+const stream = client.run(agent, messages, { stream: true });
+for await (const chunk of stream) {
+   console.log(chunk);
+}
 ```
 
-Uses the same events as [Chat Completions API streaming](https://platform.openai.com/docs/api-reference/streaming). See `process_and_print_streaming_response` in `/swarm/repl/repl.py` as an example.
+Uses the same events as [Chat Completions API streaming](https://platform.openai.com/docs/api-reference/streaming). See `processAndPrintStreamingResponse` in `/swarm/repl/repl.ts` as an example.
 
 Two new event types have been added:
 
@@ -341,12 +355,12 @@ Evaluations are crucial to any project, and we encourage developers to bring the
 
 # Utils
 
-Use the `run_demo_loop` to test out your swarm! This will run a REPL on your command line. Supports streaming.
+Use the `runDemoLoop` to test out your swarm! This will run a REPL on your command line. Supports streaming.
 
-```python
-from swarm.repl import run_demo_loop
+```typescript
+import { runDemoLoop } from 'swarm/repl';
 ...
-run_demo_loop(agent, stream=True)
+runDemoLoop(agent, { stream: true });
 ```
 
 # Core Contributors
